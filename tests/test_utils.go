@@ -1,13 +1,15 @@
-package main
+package tests
 
 import (
 	"context"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/juancortelezzi/gogsd/pkg/gsdlogger"
 )
 
-func WaitForReady(ctx context.Context, logger Logger, timeout time.Duration, endpoint string) error {
+func waitForReady(ctx context.Context, logger gsdlogger.Logger, timeout time.Duration, endpoint string) error {
 	client := http.Client{}
 	startTime := time.Now()
 

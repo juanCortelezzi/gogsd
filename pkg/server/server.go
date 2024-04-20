@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -9,19 +9,22 @@ import (
 	"os/signal"
 	"sync"
 	"time"
+
+	"github.com/juancortelezzi/gogsd/pkg/gsdlogger"
+	"github.com/juancortelezzi/gogsd/pkg/routes"
 )
 
-func NewServerHandler(logger Logger) http.Handler {
+func NewServerHandler(l gsdlogger.Logger) http.Handler {
 	mux := http.NewServeMux()
-	AddRoutes(mux, logger)
+	routes.AddRoutes(mux, l)
 	return mux
 }
 
-func Run(ctx context.Context, logger Logger, lookupEnv func(string) (string, bool)) error {
+func Run(ctx context.Context, l gsdlogger.Logger, lookupEnv func(string) (string, bool)) error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	serverHandler := NewServerHandler(logger)
+	serverHandler := NewServerHandler(l)
 
 	port, found := lookupEnv("PORT")
 	if !found {
@@ -34,9 +37,9 @@ func Run(ctx context.Context, logger Logger, lookupEnv func(string) (string, boo
 	}
 
 	go func() {
-		logger.InfoContext(ctx, "listening on", "addr", httpServer.Addr)
+		l.InfoContext(ctx, "listening on", "addr", httpServer.Addr)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.ErrorContext(ctx, "error listening and serving", "err", err)
+			l.ErrorContext(ctx, "error listening and serving", "err", err)
 		}
 	}()
 
@@ -49,7 +52,7 @@ func Run(ctx context.Context, logger Logger, lookupEnv func(string) (string, boo
 		defer cancel()
 
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
-			logger.ErrorContext(ctx, "error shutting down http server", "err", err)
+			l.ErrorContext(ctx, "error shutting down http server", "err", err)
 		}
 	}()
 

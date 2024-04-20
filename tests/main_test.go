@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	"bufio"
@@ -9,6 +9,9 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/juancortelezzi/gogsd/pkg/gsdlogger"
+	"github.com/juancortelezzi/gogsd/pkg/server"
 )
 
 const (
@@ -20,11 +23,11 @@ func TestHelloRoute(t *testing.T) {
 	t.Cleanup(cancel)
 
 	{
-		logger := NewLogger(os.Stdout, slog.LevelDebug)
+		logger := gsdlogger.NewLogger(os.Stdout, slog.LevelDebug)
 
-		go Run(ctx, logger, testLookupEnv)
+		go server.Run(ctx, logger, testLookupEnv)
 
-		err := WaitForReady(ctx, logger, time.Second*3, baseUrl+"/ping")
+		err := waitForReady(ctx, logger, time.Second*3, baseUrl+"/ping")
 		if err != nil {
 			t.Fatal(err)
 		}
