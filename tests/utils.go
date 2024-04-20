@@ -3,11 +3,28 @@ package tests
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
 	"github.com/juancortelezzi/gogsd/pkg/gsdlogger"
 )
+
+func testLookupEnv(key string) (string, bool) {
+	if key == "PORT" {
+		return "3000", true
+	}
+	return "", false
+}
+
+func getBaseUrl() string {
+	port, found := testLookupEnv("PORT")
+	if !found {
+		panic("PORT environment variable not found")
+	}
+
+	return "http://" + net.JoinHostPort("127.0.0.1", port)
+}
 
 func waitForReady(ctx context.Context, logger gsdlogger.Logger, timeout time.Duration, endpoint string) error {
 	client := http.Client{}
@@ -52,11 +69,4 @@ func waitForReady(ctx context.Context, logger gsdlogger.Logger, timeout time.Dur
 			time.Sleep(time.Millisecond * 250)
 		}
 	}
-}
-
-func testLookupEnv(key string) (string, bool) {
-	if key == "PORT" {
-		return "3000", true
-	}
-	return "", false
 }

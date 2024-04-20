@@ -14,10 +14,6 @@ import (
 	"github.com/juancortelezzi/gogsd/pkg/server"
 )
 
-const (
-	baseUrl = "http://127.0.0.1:3000"
-)
-
 func TestHelloRoute(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -27,13 +23,13 @@ func TestHelloRoute(t *testing.T) {
 
 		go server.Run(ctx, logger, testLookupEnv)
 
-		err := waitForReady(ctx, logger, time.Second*3, baseUrl+"/ping")
+		err := waitForReady(ctx, logger, time.Second*3, getBaseUrl()+"/ping")
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	resp, err := http.Get(baseUrl + "/hello/world")
+	resp, err := http.Get(getBaseUrl() + "/hello/world")
 	if err != nil {
 		t.Fatal(err)
 	}
