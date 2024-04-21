@@ -10,6 +10,8 @@ import (
 	"github.com/juancortelezzi/gogsd/pkg/gsdlogger"
 )
 
+const waitForReadyTimeout = time.Second * 3
+
 func testLookupEnv(key string) (string, bool) {
 	if key == "PORT" {
 		return "3000", true
@@ -26,7 +28,7 @@ func getBaseUrl() string {
 	return "http://" + net.JoinHostPort("127.0.0.1", port)
 }
 
-func waitForReady(ctx context.Context, logger gsdlogger.Logger, timeout time.Duration, endpoint string) error {
+func waitForReady(ctx context.Context, logger gsdlogger.Logger, endpoint string) error {
 	client := http.Client{}
 	startTime := time.Now()
 
@@ -43,7 +45,7 @@ func waitForReady(ctx context.Context, logger gsdlogger.Logger, timeout time.Dur
 			case <-ctx.Done():
 				return ctx.Err()
 			default:
-				if time.Since(startTime) >= timeout {
+				if time.Since(startTime) >= waitForReadyTimeout {
 					logger.ErrorContext(ctx, "error making request", "err", err)
 					return fmt.Errorf("timeout reached while waiting for endpoint")
 				}
@@ -55,7 +57,6 @@ func waitForReady(ctx context.Context, logger gsdlogger.Logger, timeout time.Dur
 		resp.Body.Close()
 
 		if resp.StatusCode == http.StatusOK {
-			logger.InfoContext(ctx, "endpoint is ready!")
 			return nil
 		}
 
@@ -63,7 +64,7 @@ func waitForReady(ctx context.Context, logger gsdlogger.Logger, timeout time.Dur
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			if time.Since(startTime) >= timeout {
+			if time.Since(startTime) >= waitForReadyTimeout {
 				return fmt.Errorf("timeout reached while waiting for endpoint")
 			}
 			time.Sleep(time.Millisecond * 250)

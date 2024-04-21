@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/juancortelezzi/gogsd/pkg/gsdlogger"
 	"github.com/juancortelezzi/gogsd/pkg/server"
 )
