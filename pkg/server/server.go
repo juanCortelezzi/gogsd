@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"database/sql"
 	_ "embed"
 	"fmt"
 	"net"
@@ -20,7 +19,11 @@ import (
 	"github.com/juancortelezzi/gogsd/pkg/routes"
 )
 
-func NewServerHandler(logger gsdlogger.Logger, queries *database.Queries, validate *validator.Validate) http.Handler {
+func NewServerHandler(
+	logger gsdlogger.Logger,
+	queries *database.Queries,
+	validate *validator.Validate,
+) http.Handler {
 	mux := http.NewServeMux()
 	routes.AddRoutes(mux, logger, queries, validate)
 	return mux
@@ -37,21 +40,18 @@ func Run(ctx context.Context, logger gsdlogger.Logger, lookupEnv func(string) (s
 		return fmt.Errorf("PORT environment variable not found")
 	}
 
+	databaseUrl, found := lookupEnv("DATABASE_URL")
+	if !found {
+		return fmt.Errorf("DATABASE_URL environment variable not found")
+	}
+
 	logger.DebugContext(ctx, "initializing database conneciton")
 
-	db, err := sql.Open("sqlite3", ":memory:")
+	queries, err := database.Connect(ctx, logger, databaseUrl)
 	if err != nil {
-		return err
+		logger.ErrorContext(ctx, "error connecting to database", "err", err)
+		return nil
 	}
-
-	logger.DebugContext(ctx, "running migrations")
-
-	if result, err := db.ExecContext(ctx, database.SchemaString); err != nil {
-		logger.ErrorContext(ctx, "error running migration", "err", err, "result", result)
-		return err
-	}
-
-	queries := database.New(db)
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 

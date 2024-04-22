@@ -13,10 +13,14 @@ import (
 const waitForReadyTimeout = time.Second * 3
 
 func testLookupEnv(key string) (string, bool) {
-	if key == "PORT" {
+	switch key {
+	case "PORT":
 		return "3000", true
+	case "DATABASE_URL":
+		return ":memory:", true
+	default:
+		return "", false
 	}
-	return "", false
 }
 
 func getBaseUrl() string {
