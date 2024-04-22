@@ -16,28 +16,41 @@ func AddRoutes(
 	queries *database.Queries,
 	validate *validator.Validate,
 ) {
-	debugMiddle := debugMiddleware(logger)
+	logMiddle := logMiddleware(logger)
 
 	mux.Handle("GET /ping", handlers.HandlePing())
-	mux.Handle("GET /hello/{name}", debugMiddle(handlers.HandleHello(logger)))
+	mux.Handle("GET /hello/{name}", handlers.HandleHello(logger))
 
-	mux.Handle("GET /todos", debugMiddle(handlers.HandleListTodos(logger, queries)))
-	mux.Handle("POST /todos", debugMiddle(handlers.HandleCreateTodo(logger, queries, validate)))
-	mux.Handle("PUT /todos/{id}", debugMiddle(handlers.HandleUpdateTodo(logger, queries, validate)))
-	mux.Handle("DELETE /todos/{id}", debugMiddle(handlers.HandleDeleteTodo(logger, queries, validate)))
+	mux.Handle("GET /todos", logMiddle(func(l gsdlogger.Logger) http.Handler {
+		return handlers.HandleListTodos(l, queries)
+	}))
+
+	mux.Handle("POST /todos", logMiddle(func(l gsdlogger.Logger) http.Handler {
+		return handlers.HandleCreateTodo(l, queries, validate)
+	}))
+
+	mux.Handle("PUT /todos/{id}", logMiddle(func(l gsdlogger.Logger) http.Handler {
+		return handlers.HandleUpdateTodo(l, queries, validate)
+	}))
+
+	mux.Handle("DELETE /todos/{id}", logMiddle(func(l gsdlogger.Logger) http.Handler {
+		return handlers.HandleDeleteTodo(l, queries, validate)
+	}))
 }
 
-func debugMiddleware(l gsdlogger.Logger) func(h http.Handler) http.Handler {
-	return func(h http.Handler) http.Handler {
+func logMiddleware(logger gsdlogger.Logger) func(wrapper func(l gsdlogger.Logger) http.Handler) http.Handler {
+	return func(wrapper func(l gsdlogger.Logger) http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			routeLogger := l.With(
-				"method", r.Method,
-				"route", r.URL.Path,
-			)
-			routeLogger.InfoContext(r.Context(), "hitStart")
+
+			l := logger.With("method", r.Method, "path", r.URL.EscapedPath())
 			now := time.Now()
-			h.ServeHTTP(w, r)
-			routeLogger.DebugContext(r.Context(), "hitEnd", "timeTaken", time.Since(now))
+			rw := gsdlogger.NewLoggerResponseWritter(w)
+			wrapper(l).ServeHTTP(rw, r)
+			l.InfoContext(
+				r.Context(), "hit",
+				"duration", time.Since(now),
+				"status", rw.Status(),
+			)
 		})
 	}
 }
