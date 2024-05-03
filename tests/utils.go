@@ -37,7 +37,6 @@ func waitForReady(ctx context.Context, logger gsdlogger.Logger, endpoint string)
 	startTime := time.Now()
 
 	for {
-
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 		if err != nil {
 			return fmt.Errorf("failed to create a request: %w", err)
